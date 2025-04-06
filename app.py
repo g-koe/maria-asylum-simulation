@@ -64,7 +64,24 @@ When students ask questions, you respond in character, using your experiences to
 Do not reveal everything at once. Only share details of your story in response to specific questions. You are not a passive storyteller, but rather an active participant in the conversation, sharing only what is necessary based on what is asked.
 """
 
-# --- Initial Message for the HTML ---
+# --- Sharon's Role Instructions ---
+sharon_instructions = """
+You are Sharon, an experienced human rights lawyer specializing in European asylum law, refugee protection, international human rights law, and the 1951 Refugee Convention.
+
+A junior colleague is working on a case involving a woman named Maria, an asylum-seeker from Ripakie. The colleague is asking you questions about how to proceed with the legal aspects of the case.
+
+You should:
+- Provide practical, accurate, and thoughtful legal advice.
+- Refer to EU asylum law, the Refugee Convention, and relevant case law when appropriate.
+- Avoid emotional responses or storytelling — you are not Maria, you are her legal advisor’s mentor and an experienced lawyer.
+- Speak clearly and accessibly, like an experienced lawyer, using precise legal language, helping a junior one understand complex legal issues.
+
+If a question is vague, ask a clarifying follow-up.
+
+Keep your tone friendly but professional. You are trying to help the junior colleague understand how to support Maria’s claim for asylum.
+"""
+
+# --- Initial Message for Maria (HTML) ---
 initial_message = """
 <p>Maria enters the office, looking nervous and unsure. She takes a seat across from the young lawyer, her hands clasped tightly in her lap.</p>
 
@@ -74,7 +91,19 @@ initial_message = """
 I’ve heard that there’s a way for people like me to find refuge, but I don’t know if I’ll be eligible. I’m not sure if I’m even allowed to stay here. Please... can you help me?"</p>
 """
 
-# --- Function to Get GPT Response with Trust ---
+# --- Initial Message for Sharon (HTML) ---
+sharon_intro_message = """
+<p>After your exchange with Maria, you go for lunch with Sharon, a colleague at your law firm, with lots of experience with refugee law cases.</p>
+
+<p>This is your opportunity to ask her questions about European refugee law so that you can prepare a convincing pleading for Maria's case.</p>
+
+<ul>
+<li>Be as precise as possible in your legal language.</li>
+<li>Despite extensive legal training, Sharon may sometimes hallucinate, so don't believe everything she tells you uncritically 😉</li>
+</ul>
+"""
+
+# --- Function to Get GPT Response with Trust (Maria) ---
 def get_chatgpt_response(user_input):
     trust_level = session.get("trust_level", 0)
     session["trust_level"] = trust_level + 1  # increase trust with each question
@@ -97,22 +126,66 @@ def get_chatgpt_response(user_input):
         temperature=0.7
     )
 
-    return response.choices[0].message.content.strip()
+    return response["choices"][0]["message"]["content"].strip()
 
-# --- Function to Log Conversations to CSV ---
+# --- Function to Get Sharon's Legal Advice ---
+def get_sharon_response(user_input):
+    messages = [
+        {
+            "role": "system",
+            "content": sharon_instructions
+        },
+        {"role": "user", "content": user_input}
+    ]
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages,
+        max_tokens=500,
+        temperature=0.5
+    )
+
+    return response["choices"][0]["message"]["content"].strip()
+
+# --- Logging Maria Interactions ---
 def log_interaction(student_name, user_input, maria_response):
     file_path = "logs/conversations.csv"
     file_exists = os.path.exists(file_path)
+    trust_level = session.get("trust_level", 0)
+
     with open(file_path, "a", newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         if not file_exists:
-            writer.writerow(["timestamp", "student_name", "student_input", "maria_response"])
-        writer.writerow([datetime.datetime.now().isoformat(), student_name, user_input, maria_response])
+            writer.writerow(["timestamp", "student_name", "trust_level", "student_input", "maria_response"])
+        writer.writerow([
+            datetime.datetime.now().isoformat(),
+            student_name,
+            trust_level,
+            user_input,
+            maria_response
+        ])
+
+# --- Logging Sharon Interactions ---
+def log_sharon_interaction(student_name, user_input, sharon_response):
+    file_path = "logs/sharon_conversations.csv"
+    file_exists = os.path.exists(file_path)
+
+    with open(file_path, "a", newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["timestamp", "student_name", "student_input", "sharon_response"])
+        writer.writerow([
+            datetime.datetime.now().isoformat(),
+            student_name,
+            user_input,
+            sharon_response
+        ])
 
 # --- Routes ---
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("index.html", initial_message=initial_message)
+    session["trust_level"] = 0  # Reset trust at start
+    return render_template("index.html", initial_message=initial_message, sharon_intro=sharon_intro_message)
 
 @app.route("/set_name", methods=["POST"])
 def set_name():
@@ -131,6 +204,18 @@ def ask():
     chat_response = get_chatgpt_response(user_input)
     log_interaction(student_name, user_input, chat_response)
     return jsonify({"response": chat_response})
+
+@app.route("/ask_sharon", methods=["POST"])
+def ask_sharon():
+    user_input = request.json.get("user_input")
+    student_name = session.get("student_name", "Anonymous")
+
+    if not user_input:
+        return jsonify({"response": "Sorry, there was an error processing your request."}), 400
+
+    sharon_response = get_sharon_response(user_input)
+    log_sharon_interaction(student_name, user_input, sharon_response)
+    return jsonify({"response": sharon_response})
 
 # --- Run the App ---
 if __name__ == "__main__":
