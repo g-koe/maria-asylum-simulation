@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Maria's Asylum Interview</title>
+    <style>
+        img {
+            max-width: 300px;
+            border-radius: 10px;
+            float: right;
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background-color: #f9f9f9;
+        }
+        textarea {
+            width: 100%;
+        }
+        button {
+            margin-top: 10px;
+        }
+    </style>
+    <script>
+        let studentNameSet = false;
+
+        async function setStudentName() {
+            const name = document.getElementById("student_name").value;
+            if (!name) return alert("Please enter your name.");
+
+            const res = await fetch("/set_name", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ student_name: name })
+            });
+
+            const data = await res.json();
+            if (data.status === "ok") {
+                document.getElementById("name_input").style.display = "none";
+                document.getElementById("chat_interface").style.display = "block";
+                studentNameSet = true;
+            }
+        }
+
+        async function sendMessage() {
+            if (!studentNameSet) return alert("Please enter your name first.");
+
+            const userInput = document.getElementById("user_input").value;
+            const responseBox = document.getElementById("response");
+
+            const res = await fetch("/ask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_input: userInput })
+            });
+
+            const data = await res.json();
+            responseBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
+            responseBox.innerHTML += `<div><strong>Maria:</strong> ${data.response}</div><hr>`;
+            document.getElementById("user_input").value = "";
+        }
+    </script>
+</head>
+<body>
+    <h1>Interview with Maria</h1>
+    <img src="{{ url_for('static', filename='images/maria_desk.png') }}" alt="Maria the asylum-seeker at the desk">
+
+    <div id="name_input">
+        <p>Please enter your name to begin:</p>
+        <input type="text" id="student_name" placeholder="Your name">
+        <button onclick="setStudentName()">Start Interview</button>
+    </div>
+
+    <div id="chat_interface" style="display:none;">
+        <div><em>{{ initial_message | safe }}</em></div>
+        <hr>
+        <div id="response"></div>
+        <textarea id="user_input" rows="4" cols="50" placeholder="Type your question..."></textarea><br>
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</body>
+</html>
