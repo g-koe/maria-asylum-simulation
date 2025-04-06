@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Maria's Asylum Interview</title>
+    <title>Maria's Asylum Case</title>
     <style>
         img {
             max-width: 300px;
@@ -28,6 +28,8 @@
             border-top: 2px solid #ccc;
         }
     </style>
+    <!-- ✅ Add this to enable Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         let studentNameSet = false;
 
@@ -81,7 +83,7 @@
 
             const data = await res.json();
             sharonBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
-            sharonBox.innerHTML += `<div><strong>Sharon:</strong> ${data.response}</div><hr>`;
+            sharonBox.innerHTML += `<div><strong>Sharon:</strong><br>${marked.parse(data.response)}</div><hr>`;
             document.getElementById("sharon_input").value = "";
         }
     </script>
@@ -105,6 +107,7 @@
 
         <div class="section">
             <h2>Lunch with Sharon</h2>
+            <img src="{{ url_for('static', filename='images/sharon_restaurant.png') }}" alt="Sharon the lawyer at the restaurant">
             <div><em>{{ sharon_intro | safe }}</em></div>
             <hr>
             <div id="sharon_response"></div>
