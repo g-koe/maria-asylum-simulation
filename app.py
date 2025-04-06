@@ -211,59 +211,37 @@ Respond only with the number. Do not add any explanation.
     score = score_response["choices"][0]["message"]["content"].strip()
     return full_response, score
 
-# --- Logging Maria Interactions ---
+# --- Logging ---
 def log_interaction(student_name, user_input, maria_response):
     file_path = "logs/conversations.csv"
     file_exists = os.path.exists(file_path)
     trust_level = session.get("trust_level", 0)
-
     with open(file_path, "a", newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         if not file_exists:
             writer.writerow(["timestamp", "student_name", "trust_level", "student_input", "maria_response"])
-        writer.writerow([
-            datetime.datetime.now().isoformat(),
-            student_name,
-            trust_level,
-            user_input,
-            maria_response
-        ])
+        writer.writerow([datetime.datetime.now().isoformat(), student_name, trust_level, user_input, maria_response])
 
-# --- Logging Sharon Interactions ---
 def log_sharon_interaction(student_name, user_input, sharon_response):
     file_path = "logs/sharon_conversations.csv"
     file_exists = os.path.exists(file_path)
-
     with open(file_path, "a", newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         if not file_exists:
             writer.writerow(["timestamp", "student_name", "student_input", "sharon_response"])
-        writer.writerow([
-            datetime.datetime.now().isoformat(),
-            student_name,
-            user_input,
-            sharon_response
-        ])
+        writer.writerow([datetime.datetime.now().isoformat(), student_name, user_input, sharon_response])
 
-# --- Logging Judge Interactions ---
 def log_judge_interaction(student_name, user_input, judge_response, score):
     file_path = "logs/judge_feedback.csv"
     file_exists = os.path.exists(file_path)
-
     with open(file_path, "a", newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         if not file_exists:
             writer.writerow(["timestamp", "student_name", "student_input", "judge_feedback", "score_out_of_20"])
-        writer.writerow([
-            datetime.datetime.now().isoformat(),
-            student_name,
-            user_input,
-            judge_response,
-            score
-        ])
+        writer.writerow([datetime.datetime.now().isoformat(), student_name, user_input, judge_response, score])
 
 # --- Routes ---
-@app.route("/", methods=["GET"])
+@app.route("/")
 def index():
     session["trust_level"] = 0
     return render_template("index.html", initial_message=initial_message, sharon_intro=sharon_intro_message, judge_intro=judge_intro_message)
@@ -278,10 +256,8 @@ def set_name():
 def ask():
     user_input = request.json.get("user_input")
     student_name = session.get("student_name", "Anonymous")
-
     if not user_input:
         return jsonify({"response": "Sorry, there was an error processing your request."}), 400
-
     chat_response = get_chatgpt_response(user_input)
     log_interaction(student_name, user_input, chat_response)
     return jsonify({"response": chat_response})
@@ -290,10 +266,8 @@ def ask():
 def ask_sharon():
     user_input = request.json.get("user_input")
     student_name = session.get("student_name", "Anonymous")
-
     if not user_input:
         return jsonify({"response": "Sorry, there was an error processing your request."}), 400
-
     sharon_response = get_sharon_response(user_input)
     log_sharon_interaction(student_name, user_input, sharon_response)
     return jsonify({"response": sharon_response})
@@ -302,16 +276,13 @@ def ask_sharon():
 def submit_pleading():
     user_input = request.json.get("user_input")
     student_name = session.get("student_name", "Anonymous")
-
     if not user_input:
         return jsonify({"response": "Please submit a pleading first."}), 400
-
     judge_response, score = evaluate_pleading(user_input)
     log_judge_interaction(student_name, user_input, judge_response, score)
     return jsonify({"response": judge_response})
 
-# --- Route to View and Download Logs ---
-@app.route("/view_log/<log_type>", methods=["GET"])
+@app.route("/view_log/<log_type>")
 def view_log(log_type):
     log_files = {
         "maria": "logs/conversations.csv",
@@ -319,23 +290,46 @@ def view_log(log_type):
         "judge": "logs/judge_feedback.csv"
     }
     file_path = log_files.get(log_type)
-
     if not file_path or not os.path.exists(file_path):
         return "Log not found or not yet created.", 404
 
     try:
         with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        download_link = f"/download_log/{log_type}"
-        return f"""
-            <h2>{log_type.capitalize()} Log</h2>
-            <a href='{download_link}'>Download CSV</a>
-            <pre>{content}</pre>
-        """
+            reader = csv.reader(f)
+            rows = list(reader)
+
+        if not rows:
+            return "No data available in log.", 200
+
+        headers = rows[0]
+        data_rows = rows[1:]
+
+        # Optional filters
+        student_filter = request.args.get("student")
+        date_filter = request.args.get("date")
+        min_score = request.args.get("min_score")
+
+        if student_filter:
+            data_rows = [r for r in data_rows if r[1].lower() == student_filter.lower()]
+
+        if date_filter:
+            data_rows = [r for r in data_rows if date_filter in r[0]]
+
+        if log_type == "judge" and min_score:
+            try:
+                min_score = int(min_score)
+                data_rows = [r for r in data_rows if int(r[-1]) >= min_score]
+            except:
+                pass
+
+        data_rows = sorted(data_rows, key=lambda x: x[1])
+
+        return render_template("view_log.html", log_type=log_type.capitalize(), headers=headers, rows=data_rows)
+
     except Exception as e:
         return f"<p><strong>Error reading log:</strong><br>{str(e)}</p>", 500
 
-@app.route("/download_log/<log_type>", methods=["GET"])
+@app.route("/download_log/<log_type>")
 def download_log(log_type):
     valid_logs = {
         "maria": "logs/conversations.csv",
@@ -343,12 +337,10 @@ def download_log(log_type):
         "judge": "logs/judge_feedback.csv"
     }
     file_path = valid_logs.get(log_type)
-
     if file_path and os.path.exists(file_path):
         return send_file(file_path, as_attachment=True)
     else:
         return jsonify({"error": "Requested log file not found."}), 404
 
-# --- Run the App ---
 if __name__ == "__main__":
     app.run(debug=True)

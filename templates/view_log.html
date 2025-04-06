@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ log_type }} Log</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f9f9f9;
+            padding: 40px;
+        }
+        h1 {
+            margin-bottom: 10px;
+        }
+        .log-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: #eee;
+        }
+        a.button {
+            display: inline-block;
+            padding: 10px 15px;
+            margin-top: 10px;
+            background-color: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        a.button:hover {
+            background-color: #0056b3;
+        }
+        .back {
+            margin-top: 30px;
+            display: inline-block;
+            text-decoration: none;
+            color: #333;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="log-container">
+        <h1>{{ log_type }} Log</h1>
+        <a class="button" href="/download_log/{{ log_type|lower }}">⬇️ Download CSV</a>
+
+        {% if rows %}
+            <table>
+                <thead>
+                    <tr>
+                        {% for header in headers %}
+                            <th>{{ header }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            {% for cell in row %}
+                                <td>{{ cell }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No log data available.</p>
+        {% endif %}
+
+        <a href="/" class="back">← Back to Home</a>
+    </div>
+</body>
+</html>
