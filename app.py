@@ -310,22 +310,7 @@ def submit_pleading():
     log_judge_interaction(student_name, user_input, judge_response, score)
     return jsonify({"response": judge_response})
 
-# --- Route to Download Logs ---
-@app.route("/download_log/<log_type>", methods=["GET"])
-def download_log(log_type):
-    valid_logs = {
-        "maria": "logs/conversations.csv",
-        "sharon": "logs/sharon_conversations.csv",
-        "judge": "logs/judge_feedback.csv"
-    }
-    file_path = valid_logs.get(log_type)
-
-    if file_path and os.path.exists(file_path):
-        return send_file(file_path, as_attachment=True)
-    else:
-        return jsonify({"error": "Requested log file not found."}), 404
-
-# --- Route to View Logs ---
+# --- Route to View and Download Logs ---
 @app.route("/view_log/<log_type>", methods=["GET"])
 def view_log(log_type):
     log_files = {
@@ -341,11 +326,28 @@ def view_log(log_type):
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
-        return f"<pre>{content}</pre>"
+        download_link = f"/download_log/{log_type}"
+        return f"""
+            <h2>{log_type.capitalize()} Log</h2>
+            <a href='{download_link}'>Download CSV</a>
+            <pre>{content}</pre>
+        """
     except Exception as e:
         return f"<p><strong>Error reading log:</strong><br>{str(e)}</p>", 500
 
+@app.route("/download_log/<log_type>", methods=["GET"])
+def download_log(log_type):
+    valid_logs = {
+        "maria": "logs/conversations.csv",
+        "sharon": "logs/sharon_conversations.csv",
+        "judge": "logs/judge_feedback.csv"
+    }
+    file_path = valid_logs.get(log_type)
 
+    if file_path and os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True)
+    else:
+        return jsonify({"error": "Requested log file not found."}), 404
 
 # --- Run the App ---
 if __name__ == "__main__":
