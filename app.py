@@ -310,6 +310,21 @@ def submit_pleading():
     log_judge_interaction(student_name, user_input, judge_response, score)
     return jsonify({"response": judge_response})
 
+# --- Route to Download Logs ---
+@app.route("/download_log/<log_type>", methods=["GET"])
+def download_log(log_type):
+    valid_logs = {
+        "maria": "logs/conversations.csv",
+        "sharon": "logs/sharon_conversations.csv",
+        "judge": "logs/judge_feedback.csv"
+    }
+    file_path = valid_logs.get(log_type)
+
+    if file_path and os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True)
+    else:
+        return jsonify({"error": "Requested log file not found."}), 404
+
 # --- Run the App ---
 if __name__ == "__main__":
     app.run(debug=True)
