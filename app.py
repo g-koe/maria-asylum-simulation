@@ -325,6 +325,28 @@ def download_log(log_type):
     else:
         return jsonify({"error": "Requested log file not found."}), 404
 
+# --- Route to View Logs ---
+@app.route("/view_log/<log_type>", methods=["GET"])
+def view_log(log_type):
+    log_files = {
+        "maria": "logs/conversations.csv",
+        "sharon": "logs/sharon_conversations.csv",
+        "judge": "logs/judge_feedback.csv"
+    }
+    file_path = log_files.get(log_type)
+
+    if not file_path or not os.path.exists(file_path):
+        return "Log not found or not yet created.", 404
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return f"<pre>{content}</pre>"
+    except Exception as e:
+        return f"<p><strong>Error reading log:</strong><br>{str(e)}</p>", 500
+
+
+
 # --- Run the App ---
 if __name__ == "__main__":
     app.run(debug=True)
