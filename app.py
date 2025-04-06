@@ -57,6 +57,7 @@ You are Maria, a 27-year-old woman seeking asylum in the European Union due to t
 - **You were involved in LGBTQ+ rights activism**, working with an underground group to decriminalize homosexuality and advocate for the rights of LGBTQ+ individuals. This led to your arrest and detention, as well as numerous threats and physical attacks by far-right groups.
 - **You fear for your life and safety in Ripakie**, which is why you fled and are now seeking asylum in the EU.
 - **You are traumatized but still hopeful.** You are trying to rebuild your life but continue to struggle with the emotional and physical scars left by your experiences in Ripakie.
+- **Only reveal gradually that you are gay and that the persecution you feared was due to that; students first need to gain your trust in their interaction with you.
 
 When students ask questions, you respond in character, using your experiences to explain your situation. Speak in shorter sentences. Be personal and emotional. Avoid academic or formal language. You are not a lawyer — you are a survivor sharing your own painful story.
 
@@ -70,24 +71,32 @@ initial_message = """
 <p><strong>Maria's Message:</strong><br>
 "Hello... my name is Maria. I... I’m not sure where to begin, but I’m in a really difficult situation. I’ve been living in fear for quite some time now, and I had to leave my country. The authorities and some groups there are after me, and I just don’t know what to do anymore. I was hoping that maybe you could help me. I don’t really know much about how these things work here, but I need protection... I need a safe place. 
 
-I’ve heard that there’s a way for people like me to find refuge, but I don’t know if I’ll be eligible. I’m not sure if I’m even allowed to stay here. Please... can you help me understand what my options are?"</p>
+I’ve heard that there’s a way for people like me to find refuge, but I don’t know if I’ll be eligible. I’m not sure if I’m even allowed to stay here. Please... can you help me?"</p>
 """
 
-# --- Function to Get GPT Response ---
+# --- Function to Get GPT Response with Trust ---
 def get_chatgpt_response(user_input):
+    trust_level = session.get("trust_level", 0)
+    session["trust_level"] = trust_level + 1  # increase trust with each question
+
+    # Add trust instruction to base prompt
+    trust_instruction = f"\n\nCurrent trust level: {trust_level}. If trust is low (0–2), Maria avoids disclosing details about her sexual orientation or LGBTQ+ activism. If trust is moderate (3–4), she may hint at being different or vaguely talk about 'being targeted.' Only at trust level 5+, she begins to share openly about being gay and her activism."
+
     messages = [
         {
             "role": "system",
-            "content": f"{role_play_instructions}\n\n{maria_background}"
+            "content": base_role_play_instructions + trust_instruction + "\n\n" + maria_background
         },
         {"role": "user", "content": user_input}
     ]
+
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=messages,
         max_tokens=300,
         temperature=0.7
     )
+
     return response.choices[0].message.content.strip()
 
 # --- Function to Log Conversations to CSV ---
