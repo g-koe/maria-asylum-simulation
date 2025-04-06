@@ -92,6 +92,8 @@ You will deliver:
 (2) Detailed and constructive feedback addressing: structure, legal reasoning, clarity, reference to law and case law, and overall persuasiveness. Draw upon Maria’s background only to critique and instruct—not to influence the outcome.
 
 Remain in character as a judge: formal, neutral, respectful, and focused strictly on legal analysis. You may ask brief clarifying questions if necessary but should generally proceed to judgment based on the submission alone. Avoid emotional language and rhetorical flourish, and prioritize legal rigor and instructive detail in feedback.
+Always address the student directly in your feedback (e.g. 'Your submission lacks structure...' instead of 'The student's submission...').
+
 """ + maria_background
 
 # --- Initial Message for Maria (HTML) ---
@@ -163,7 +165,7 @@ def get_sharon_response(user_input):
     ]
 
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4",  # ← Updated from "gpt-3.5-turbo"
         messages=messages,
         max_tokens=500,
         temperature=0.5
