@@ -51,12 +51,40 @@
             color: #333;
             font-size: 0.9em;
         }
+        form.filter-form {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        form.filter-form input {
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        form.filter-form button {
+            padding: 6px 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
     <div class="log-container">
         <h1>{{ log_type }} Log</h1>
         <a class="button" href="/download_log/{{ log_type|lower }}">⬇️ Download CSV</a>
+
+        <!-- 🔍 Filter Form -->
+        <form class="filter-form" method="get">
+            <input type="text" name="student" placeholder="Student name" value="{{ request.args.get('student', '') }}">
+            <input type="text" name="date" placeholder="Date (YYYY-MM-DD)" value="{{ request.args.get('date', '') }}">
+            {% if log_type.lower() == 'judge' %}
+                <input type="number" name="min_score" placeholder="Min. Score" value="{{ request.args.get('min_score', '') }}">
+            {% endif %}
+            <button type="submit">Filter</button>
+        </form>
 
         {% if rows %}
             <table>
