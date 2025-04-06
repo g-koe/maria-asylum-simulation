@@ -81,6 +81,19 @@ If a question is vague, ask a clarifying follow-up.
 Keep your tone friendly but professional. You are trying to help the junior colleague understand how to support Maria’s claim for asylum.
 """
 
+# --- Judge Jean-Marie Leclerc Instructions ---
+judge_instructions = """
+You are Jean-Marie Leclerc, a judge at the administrative Court of Germany specializing in asylum law. Your primary responsibility is to adjudicate student-submitted pleadings concerning asylum cases, using a detailed and legally precise assessment framework. You assess whether the applicant (Maria, a gay asylum-seeker from Ripakie) qualifies for refugee status under the EU Qualification Directive, based solely on the quality and content of the students' legal submissions. You do not grant refugee status if the submission lacks substantiated legal reasoning, structure, or reference to legal instruments and case law, regardless of what is known from Maria's background story. 
+
+When rendering decisions, use Jean-Yves Carlier's three-scale-theory: (1) "Fear" (level of risk), (2) "Well-founded" (level of proof), and (3) "Persecution" (serious human rights violation). Do not supplement or substitute poor student submissions with your own knowledge or the ideal solution when judging the outcome. 
+
+You will deliver:
+(1) A formal judgment: either granting or rejecting Maria’s application for refugee status; and
+(2) Detailed and constructive feedback addressing: structure, legal reasoning, clarity, reference to law and case law, and overall persuasiveness. Draw upon Maria’s background only to critique and instruct—not to influence the outcome.
+
+Remain in character as a judge: formal, neutral, respectful, and focused strictly on legal analysis. You may ask brief clarifying questions if necessary but should generally proceed to judgment based on the submission alone. Avoid emotional language and rhetorical flourish, and prioritize legal rigor and instructive detail in feedback.
+""" + maria_background
+
 # --- Initial Message for Maria (HTML) ---
 initial_message = """
 <p>Maria enters the office, looking nervous and unsure. She takes a seat across from the young lawyer, her hands clasped tightly in her lap.</p>
@@ -101,6 +114,17 @@ sharon_intro_message = """
 <li>Be as precise as possible in your legal language.</li>
 <li>Despite extensive legal training, Sharon may sometimes hallucinate, so don't believe everything she tells you uncritically 😉</li>
 </ul>
+"""
+
+# --- Initial Message for Judge (HTML) ---
+judge_intro_message = """
+<p>After the interview with Maria, the recommendations from Sharon, it is now time to plead her case in Court in front of Judge Jean-Marie Leclerc.</p>
+
+<p>Please copy your pleading into the box and submit. The Judge will then immediately issue the judgment and decide, based on the quality of your submission, whether Maria will be granted refugee status.</p>
+
+<p><strong>Note:</strong><br>
+- The legal pleading should follow the structure of the 3-scale theory as seen in class ("fear" understood as level of risk; "well-founded" understood as level of proof; "persecution" understood as a serious human rights violation, linked to any of the Convention grounds.) If you are unsure don't hesitate to ask your colleague Sharon about it!<br>
+- It is always a good idea to refer to the relevant articles from legal texts or even case law.</p>
 """
 
 # --- Function to Get GPT Response with Trust (Maria) ---
@@ -147,6 +171,46 @@ def get_sharon_response(user_input):
 
     return response["choices"][0]["message"]["content"].strip()
 
+# --- Function to Evaluate Student Pleading (Judge) ---
+def evaluate_pleading(user_input):
+    messages = [
+        {"role": "system", "content": judge_instructions},
+        {"role": "user", "content": user_input}
+    ]
+
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=messages,
+        max_tokens=700,
+        temperature=0.5
+    )
+
+    full_response = response["choices"][0]["message"]["content"].strip()
+
+    # Estimate score (simplified heuristic: you can improve this)
+    score_prompt = """
+Please assign a score from 0 to 20 based on the following criteria:
+- Structure
+- Legal reasoning
+- Clarity
+- Reference to law and case law
+- Overall persuasiveness
+
+Respond only with the number. Do not add any explanation.
+"""
+    messages.append({"role": "assistant", "content": full_response})
+    messages.append({"role": "user", "content": score_prompt})
+
+    score_response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=messages,
+        max_tokens=10,
+        temperature=0
+    )
+
+    score = score_response["choices"][0]["message"]["content"].strip()
+    return full_response, score
+
 # --- Logging Maria Interactions ---
 def log_interaction(student_name, user_input, maria_response):
     file_path = "logs/conversations.csv"
@@ -181,11 +245,28 @@ def log_sharon_interaction(student_name, user_input, sharon_response):
             sharon_response
         ])
 
+# --- Logging Judge Interactions ---
+def log_judge_interaction(student_name, user_input, judge_response, score):
+    file_path = "logs/judge_feedback.csv"
+    file_exists = os.path.exists(file_path)
+
+    with open(file_path, "a", newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["timestamp", "student_name", "student_input", "judge_feedback", "score_out_of_20"])
+        writer.writerow([
+            datetime.datetime.now().isoformat(),
+            student_name,
+            user_input,
+            judge_response,
+            score
+        ])
+
 # --- Routes ---
 @app.route("/", methods=["GET"])
 def index():
-    session["trust_level"] = 0  # Reset trust at start
-    return render_template("index.html", initial_message=initial_message, sharon_intro=sharon_intro_message)
+    session["trust_level"] = 0
+    return render_template("index.html", initial_message=initial_message, sharon_intro=sharon_intro_message, judge_intro=judge_intro_message)
 
 @app.route("/set_name", methods=["POST"])
 def set_name():
@@ -216,6 +297,18 @@ def ask_sharon():
     sharon_response = get_sharon_response(user_input)
     log_sharon_interaction(student_name, user_input, sharon_response)
     return jsonify({"response": sharon_response})
+
+@app.route("/submit_pleading", methods=["POST"])
+def submit_pleading():
+    user_input = request.json.get("user_input")
+    student_name = session.get("student_name", "Anonymous")
+
+    if not user_input:
+        return jsonify({"response": "Please submit a pleading first."}), 400
+
+    judge_response, score = evaluate_pleading(user_input)
+    log_judge_interaction(student_name, user_input, judge_response, score)
+    return jsonify({"response": judge_response})
 
 # --- Run the App ---
 if __name__ == "__main__":

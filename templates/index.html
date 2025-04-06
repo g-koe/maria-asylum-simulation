@@ -28,7 +28,6 @@
             border-top: 2px solid #ccc;
         }
     </style>
-    <!-- ✅ Add this to enable Markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         let studentNameSet = false;
@@ -86,6 +85,24 @@
             sharonBox.innerHTML += `<div><strong>Sharon:</strong><br>${marked.parse(data.response)}</div><hr>`;
             document.getElementById("sharon_input").value = "";
         }
+
+        async function submitPleading() {
+            if (!studentNameSet) return alert("Please enter your name first.");
+
+            const userInput = document.getElementById("pleading_input").value;
+            const judgeBox = document.getElementById("judge_response");
+
+            const res = await fetch("/submit_pleading", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_input: userInput })
+            });
+
+            const data = await res.json();
+            judgeBox.innerHTML += `<div><strong>You:</strong><br>${userInput}</div>`;
+            judgeBox.innerHTML += `<div><strong>Judge Leclerc:</strong><br>${marked.parse(data.response)}</div><hr>`;
+            document.getElementById("pleading_input").value = "";
+        }
     </script>
 </head>
 <body>
@@ -113,6 +130,16 @@
             <div id="sharon_response"></div>
             <textarea id="sharon_input" rows="4" cols="50" placeholder="Ask Sharon a legal question..."></textarea><br>
             <button onclick="sendSharonMessage()">Ask Sharon</button>
+        </div>
+
+        <div class="section">
+            <h2>Pleading Before Judge Leclerc</h2>
+            <img src="{{ url_for('static', filename='images/judge_court.png') }}" alt="Judge Jean-Marie Leclerc in court">
+            <div><em>{{ judge_intro | safe }}</em></div>
+            <hr>
+            <div id="judge_response"></div>
+            <textarea id="pleading_input" rows="6" cols="70" placeholder="Paste your legal pleading here..."></textarea><br>
+            <button onclick="submitPleading()">Submit to Judge</button>
         </div>
     </div>
 </body>
