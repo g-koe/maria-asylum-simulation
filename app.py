@@ -1,32 +1,31 @@
-from flask import Flask, render_template, request, jsonify, session
-import openai
-from flask_session import Session
-from dotenv import load_dotenv
 import os
 import csv
 import datetime
+from io import StringIO
+
+from flask import Flask, render_template, request, jsonify, session, send_file
+from flask_session import Session
+from dotenv import load_dotenv
+import openai
 import psycopg2
-
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-def get_db_connection():
-    return psycopg2.connect(DATABASE_URL)
-
+from psycopg2.extras import RealDictCursor
 
 # --- Load environment variables from .env ---
 load_dotenv()
 
 # --- Flask App Setup ---
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret")  # Use a secure key in production!
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret")
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # --- OpenAI Client Setup ---
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-# --- Ensure logs directory exists ---
-os.makedirs("logs", exist_ok=True)
+# --- Database Connection ---
+def get_db_connection():
+    return psycopg2.connect(os.environ["DATABASE_URL"], cursor_factory=RealDictCursor)
+
 
 # --- Maria's Background ---
 maria_background = """
@@ -299,63 +298,93 @@ def submit_pleading():
 
 @app.route("/view_log/<log_type>")
 def view_log(log_type):
-    log_files = {
-        "maria": "logs/conversations.csv",
-        "sharon": "logs/sharon_conversations.csv",
-        "judge": "logs/judge_feedback.csv"
+    valid_tables = {
+        "maria": "maria_logs",
+        "sharon": "sharon_logs",
+        "judge": "judge_logs"
     }
-    file_path = log_files.get(log_type)
-    if not file_path or not os.path.exists(file_path):
-        return "Log not found or not yet created.", 404
+    table_name = valid_tables.get(log_type)
+    if not table_name:
+        return "Invalid log type.", 404
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            rows = list(reader)
+        conn = get_db_connection()
+        cur = conn.cursor()
 
-        if not rows:
-            return "No data available in log.", 200
+        query = f"SELECT * FROM {table_name}"
+        filters = []
+        params = []
 
-        headers = rows[0]
-        data_rows = rows[1:]
-
-        # Optional filters
         student_filter = request.args.get("student")
         date_filter = request.args.get("date")
         min_score = request.args.get("min_score")
 
         if student_filter:
-            data_rows = [r for r in data_rows if r[1].lower() == student_filter.lower()]
+            filters.append("LOWER(student_name) = LOWER(%s)")
+            params.append(student_filter)
 
         if date_filter:
-            data_rows = [r for r in data_rows if date_filter in r[0]]
+            filters.append("CAST(timestamp AS TEXT) LIKE %s")
+            params.append(f"%{date_filter}%")
 
         if log_type == "judge" and min_score:
-            try:
-                min_score = int(min_score)
-                data_rows = [r for r in data_rows if int(r[-1]) >= min_score]
-            except:
-                pass
+            filters.append("CAST(score AS INTEGER) >= %s")
+            params.append(min_score)
 
-        data_rows = sorted(data_rows, key=lambda x: x[1])
+        if filters:
+            query += " WHERE " + " AND ".join(filters)
 
-        return render_template("view_log.html", log_type=log_type.capitalize(), headers=headers, rows=data_rows)
+        query += " ORDER BY student_name"
+
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        conn.close()
+
+        if not rows:
+            return "No data available in log.", 200
+
+        headers = rows[0].keys()
+        return render_template("view_log.html", log_type=log_type.capitalize(), headers=headers, rows=rows)
 
     except Exception as e:
         return f"<p><strong>Error reading log:</strong><br>{str(e)}</p>", 500
 
 @app.route("/download_log/<log_type>")
 def download_log(log_type):
-    valid_logs = {
-        "maria": "logs/conversations.csv",
-        "sharon": "logs/sharon_conversations.csv",
-        "judge": "logs/judge_feedback.csv"
+    valid_tables = {
+        "maria": "maria_logs",
+        "sharon": "sharon_logs",
+        "judge": "judge_logs"
     }
-    file_path = valid_logs.get(log_type)
-    if file_path and os.path.exists(file_path):
-        return send_file(file_path, as_attachment=True)
-    else:
-        return jsonify({"error": "Requested log file not found."}), 404
+    table_name = valid_tables.get(log_type)
+    if not table_name:
+        return jsonify({"error": "Invalid log type."}), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(f"SELECT * FROM {table_name}")
+        rows = cur.fetchall()
+        headers = [desc[0] for desc in cur.description]
+        conn.close()
+
+        # Create CSV in memory
+        csv_buffer = StringIO()
+        writer = csv.writer(csv_buffer)
+        writer.writerow(headers)
+        for row in rows:
+            writer.writerow(row)
+
+        csv_buffer.seek(0)
+        filename = f"{log_type}_log.csv"
+        return send_file(
+            csv_buffer,
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
