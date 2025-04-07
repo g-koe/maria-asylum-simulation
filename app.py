@@ -130,10 +130,13 @@ judge_intro_message = """
 
 <p>Please copy your pleading into the box and submit. The Judge will then immediately issue the judgment and decide, based on the quality of your submission, whether Maria will be granted refugee status.</p>
 
-<p><strong>Note:</strong><br>
-- The legal pleading should follow the structure of the 3-scale theory as seen in class ("fear" understood as level of risk; "well-founded" understood as level of proof; "persecution" understood as a serious human rights violation, linked to any of the Convention grounds.) If you are unsure don't hesitate to ask your colleague Sharon about it!<br>
-- It is always a good idea to refer to the relevant articles from legal texts or even case law.</p>
+<p><strong>Note:</strong></p>
+<ul>
+<li>The legal pleading should follow the structure of the 3-scale theory as seen in class ("fear" understood as level of risk; "well-founded" understood as level of proof; "persecution" understood as a serious human rights violation, linked to any of the Convention grounds). If you are unsure, don't hesitate to ask your colleague Sharon about it!</li>
+<li>It is always a good idea to refer to the relevant articles from legal texts or even case law.</li>
+</ul>
 """
+
 
 # --- Function to Get GPT Response with Trust (Maria) ---
 def get_chatgpt_response(user_input):
