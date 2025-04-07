@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Maria's Asylum Case</title>
   <style>
     body {
@@ -71,6 +71,71 @@
       border-top: 2px solid #ccc;
     }
   </style>
+  <script>
+    window.addEventListener("scroll", function () {
+      const scrollY = window.scrollY;
+      const step1 = document.getElementById("step1").offsetTop - 200;
+      const step2 = document.getElementById("step2").offsetTop - 200;
+      const step3 = document.getElementById("step3").offsetTop - 400;
+
+      const icon1 = document.getElementById("step1-icon");
+      const icon2 = document.getElementById("step2-icon");
+      const icon3 = document.getElementById("step3-icon");
+
+      icon1.classList.remove("active");
+      icon2.classList.remove("active");
+      icon3.classList.remove("active");
+
+      if (scrollY >= step3) {
+        icon3.classList.add("active");
+      } else if (scrollY >= step2) {
+        icon2.classList.add("active");
+      } else {
+        icon1.classList.add("active");
+      }
+    });
+  </script>
+</head>
+<body>
+  <div class="sticky-header">
+    <h1>👋 Welcome, <span id="displayed_name">Student</span>!</h1>
+    <p>You're stepping into the shoes of Maria's lawyer. Ready to help her seek justice?</p>
+    <div class="progress-container">
+      <div class="progress-step" id="step1-icon">👩‍💼<br>Interview with Maria</div>
+      <div class="progress-step" id="step2-icon">🧑‍⚖️<br>Legal Advice with Sharon</div>
+      <div class="progress-step" id="step3-icon">🏛️<br>Judge’s Court Decision</div>
+    </div>
+  </div>
+
+  <div class="section" id="name_input" style="margin-top: 220px;">
+    <p>Please enter your name to begin:</p>
+    <input type="text" id="student_name" placeholder="Your name">
+    <button onclick="setStudentName()">Start Interview</button>
+  </div>
+
+  <div class="section" id="chat_interface" style="display:none;">
+    <div class="divider" id="step1">
+      <h2>Interview with Maria</h2>
+      <div id="response"></div>
+      <textarea id="user_input" rows="4" placeholder="Type your question to Maria..."></textarea><br>
+      <button onclick="sendMessage()">Send to Maria</button>
+    </div>
+
+    <div class="divider" id="step2">
+      <h2>Lunch with Sharon</h2>
+      <div id="sharon_response"></div>
+      <textarea id="sharon_input" rows="4" placeholder="Ask Sharon a legal question..."></textarea><br>
+      <button onclick="sendSharonMessage()">Ask Sharon</button>
+    </div>
+
+    <div class="divider" id="step3">
+      <h2>Pleading Before the Judge</h2>
+      <div id="judge_response"></div>
+      <textarea id="judge_input" rows="10" placeholder="Paste your final pleading here..."></textarea><br>
+      <button onclick="sendJudgeMessage()">Submit to Judge</button>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
     let studentNameSet = false;
@@ -135,69 +200,6 @@
       judgeBox.innerHTML = `<div><strong>Judge's Decision:</strong><br>${marked.parse(data.response)}</div>`;
       document.getElementById("judge_input").value = "";
     }
-
-    window.addEventListener("scroll", function () {
-      const scrollY = window.scrollY;
-      const step1 = document.getElementById("step1").offsetTop - 200;
-      const step2 = document.getElementById("step2").offsetTop - 200;
-      const step3 = document.getElementById("step3").offsetTop - 400;
-
-      const icon1 = document.getElementById("step1-icon");
-      const icon2 = document.getElementById("step2-icon");
-      const icon3 = document.getElementById("step3-icon");
-
-      icon1.classList.remove("active");
-      icon2.classList.remove("active");
-      icon3.classList.remove("active");
-
-      if (scrollY >= step3) {
-        icon3.classList.add("active");
-      } else if (scrollY >= step2) {
-        icon2.classList.add("active");
-      } else {
-        icon1.classList.add("active");
-      }
-    });
   </script>
-</head>
-<body>
-  <div class="sticky-header">
-    <h1>👋 Welcome, <span id="displayed_name">Student</span>!</h1>
-    <p>You're stepping into the shoes of Maria's lawyer. Ready to help her seek justice?</p>
-    <div class="progress-container">
-      <div class="progress-step" id="step1-icon">👩‍💼<br>Interview with Maria</div>
-      <div class="progress-step" id="step2-icon">🧑‍⚖️<br>Legal Advice with Sharon</div>
-      <div class="progress-step" id="step3-icon">🏛️<br>Judge’s Court Decision</div>
-    </div>
-  </div>
-
-  <div class="section" id="name_input" style="margin-top: 220px;">
-    <p>Please enter your name to begin:</p>
-    <input type="text" id="student_name" placeholder="Your name">
-    <button onclick="setStudentName()">Start Interview</button>
-  </div>
-
-  <div class="section" id="chat_interface" style="display:none;">
-    <div class="divider" id="step1">
-      <h2>Interview with Maria</h2>
-      <div id="response"></div>
-      <textarea id="user_input" rows="4" placeholder="Type your question to Maria..."></textarea><br>
-      <button onclick="sendMessage()">Send to Maria</button>
-    </div>
-
-    <div class="divider" id="step2">
-      <h2>Lunch with Sharon</h2>
-      <div id="sharon_response"></div>
-      <textarea id="sharon_input" rows="4" placeholder="Ask Sharon a legal question..."></textarea><br>
-      <button onclick="sendSharonMessage()">Ask Sharon</button>
-    </div>
-
-    <div class="divider" id="step3">
-      <h2>Pleading Before the Judge</h2>
-      <div id="judge_response"></div>
-      <textarea id="judge_input" rows="10" placeholder="Paste your final pleading here..."></textarea><br>
-      <button onclick="sendJudgeMessage()">Submit to Judge</button>
-    </div>
-  </div>
 </body>
 </html>
