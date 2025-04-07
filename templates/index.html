@@ -4,17 +4,20 @@
     <meta charset="UTF-8">
     <title>Maria's Asylum Case</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            font-size: 2em;
+        }
         img {
             max-width: 300px;
             border-radius: 10px;
             float: right;
             margin-left: 20px;
             margin-bottom: 10px;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            padding: 40px;
-            background-color: #f9f9f9;
         }
         textarea {
             width: 100%;
@@ -23,40 +26,45 @@
             margin-top: 10px;
         }
         .section {
-            margin-top: 50px;
+            margin-top: 80px;
             padding-top: 20px;
             border-top: 2px solid #ccc;
         }
-        #student_display {
-            background-color: #e7f1ff;
-            padding: 15px 20px;
-            margin-bottom: 25px;
-            border-left: 5px solid #007BFF;
-            font-size: 1.1em;
-            border-radius: 8px;
+        .progress-wrapper {
+            margin-top: 20px;
+            margin-bottom: 40px;
         }
-        .step-label {
-            font-size: 0.9em;
-            color: #666;
-            margin-bottom: 10px;
+        .progress-bar {
+            height: 10px;
+            background-color: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 33%;
+            background-color: #4285f4;
+            transition: width 0.3s ease-in-out;
+        }
+        .progress-label {
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .welcome {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         let studentNameSet = false;
 
-        window.onload = function() {
-            const savedName = localStorage.getItem("student_name");
-            if (savedName) {
-                setStudentName(savedName, true);  // silent init
-            }
-        }
-
-        async function setStudentName(name = null, silent = false) {
-            if (!name) {
-                name = document.getElementById("student_name").value;
-            }
-
+        async function setStudentName() {
+            const name = document.getElementById("student_name").value;
             if (!name) return alert("Please enter your name.");
 
             const res = await fetch("/set_name", {
@@ -67,15 +75,10 @@
 
             const data = await res.json();
             if (data.status === "ok") {
-                localStorage.setItem("student_name", name);
-                studentNameSet = true;
-
-                document.getElementById("student_display").innerHTML =
-                    `👋 <strong>Welcome, ${name}!</strong><br>
-                    You're stepping into the shoes of Maria's lawyer. Ready to help her seek justice?`;
-
                 document.getElementById("name_input").style.display = "none";
                 document.getElementById("chat_interface").style.display = "block";
+                document.getElementById("student_welcome").innerText = `👋 Welcome, ${name}!`;
+                studentNameSet = true;
             }
         }
 
@@ -115,30 +118,33 @@
             document.getElementById("sharon_input").value = "";
         }
 
-        async function submitPleading() {
-            if (!studentNameSet) return alert("Please enter your name first.");
-
-            const userInput = document.getElementById("pleading_input").value;
-            const judgeBox = document.getElementById("judge_response");
-
-            const res = await fetch("/submit_pleading", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_input: userInput })
-            });
-
-            const data = await res.json();
-            judgeBox.innerHTML += `<div><strong>You:</strong><br>${userInput}</div>`;
-            judgeBox.innerHTML += `<div><strong>Judge Leclerc:</strong><br>${marked.parse(data.response)}</div><hr>`;
-            document.getElementById("pleading_input").value = "";
+        function updateProgress(step) {
+            const progressFill = document.getElementById("progress_fill");
+            const label = document.getElementById("progress_label");
+            if (step === 1) {
+                progressFill.style.width = "33%";
+                label.textContent = "Step 1: Interviewing Maria";
+            } else if (step === 2) {
+                progressFill.style.width = "66%";
+                label.textContent = "Step 2: Lunch with Sharon";
+            } else if (step === 3) {
+                progressFill.style.width = "100%";
+                label.textContent = "Step 3: Pleading in Court";
+            }
         }
+
+        window.addEventListener('scroll', () => {
+            const sharon = document.getElementById("sharon_section");
+            const judge = document.getElementById("judge_section");
+            const scrollY = window.scrollY + window.innerHeight / 2;
+
+            if (judge.offsetTop < scrollY) updateProgress(3);
+            else if (sharon.offsetTop < scrollY) updateProgress(2);
+            else updateProgress(1);
+        });
     </script>
 </head>
 <body>
-    <h1>Maria's Asylum Case Simulation</h1>
-    <div id="student_display"></div>
-    <img src="{{ url_for('static', filename='images/maria_desk.png') }}" alt="Maria the asylum-seeker at the desk">
-
     <div id="name_input">
         <p>Please enter your name to begin:</p>
         <input type="text" id="student_name" placeholder="Your name">
@@ -146,15 +152,26 @@
     </div>
 
     <div id="chat_interface" style="display:none;">
-        <div class="step-label">Step 1: Interview with Maria</div>
+        <div class="welcome">
+            <h2 id="student_welcome">👋 Welcome!</h2>
+            <p>You're stepping into the shoes of Maria's lawyer. Ready to help her seek justice?</p>
+            <div class="progress-wrapper">
+                <div class="progress-bar">
+                    <div id="progress_fill" class="progress-fill"></div>
+                </div>
+                <div id="progress_label" class="progress-label">Step 1: Interviewing Maria</div>
+            </div>
+        </div>
+
+        <h1>Interview with Maria</h1>
+        <img src="{{ url_for('static', filename='images/maria_desk.png') }}" alt="Maria the asylum-seeker at the desk">
         <div><em>{{ initial_message | safe }}</em></div>
         <hr>
         <div id="response"></div>
         <textarea id="user_input" rows="4" cols="50" placeholder="Type your question to Maria..."></textarea><br>
         <button onclick="sendMessage()">Send to Maria</button>
 
-        <div class="section">
-            <div class="step-label">Step 2: Legal Consultation with Sharon</div>
+        <div class="section" id="sharon_section">
             <h2>Lunch with Sharon</h2>
             <img src="{{ url_for('static', filename='images/sharon_restaurant.png') }}" alt="Sharon the lawyer at the restaurant">
             <div><em>{{ sharon_intro | safe }}</em></div>
@@ -164,14 +181,13 @@
             <button onclick="sendSharonMessage()">Ask Sharon</button>
         </div>
 
-        <div class="section">
-            <div class="step-label">Step 3: Submit Your Legal Pleading</div>
-            <h2>Pleading Before Judge Leclerc</h2>
-            <img src="{{ url_for('static', filename='images/judge_court.png') }}" alt="Judge Jean-Marie Leclerc in court">
+        <div class="section" id="judge_section">
+            <h2>Courtroom with Judge Leclerc</h2>
+            <img src="{{ url_for('static', filename='images/judge_courtroom.png') }}" alt="Judge Jean-Marie Leclerc in court">
             <div><em>{{ judge_intro | safe }}</em></div>
             <hr>
             <div id="judge_response"></div>
-            <textarea id="pleading_input" rows="6" cols="70" placeholder="Paste your legal pleading here..."></textarea><br>
+            <textarea id="judge_input" rows="6" cols="50" placeholder="Paste your legal pleading here..."></textarea><br>
             <button onclick="submitPleading()">Submit to Judge</button>
         </div>
     </div>
