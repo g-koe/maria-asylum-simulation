@@ -358,27 +358,35 @@ def download_log(log_type):
     }
     table_name = valid_tables.get(log_type)
     if not table_name:
-        return jsonify({"error": "Invalid log type."}), 400
+        return jsonify({"error": "Invalid log type."}), 404
 
     try:
         conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur = conn.cursor()
         cur.execute(f"SELECT * FROM {table_name}")
         rows = cur.fetchall()
         conn.close()
 
         if not rows:
-            return jsonify({"error": "No data available."}), 404
+            return jsonify({"error": "No data to export."}), 404
 
-        # Create CSV in memory
-        output = BytesIO()
-        writer = csv.writer(output)
-        writer.writerow(rows[0].keys())  # headers
-        for row in rows:
-            writer.writerow(row.values())
+        # Use StringIO for CSV writing, then encode to BytesIO
+        from io import StringIO
+        csv_buffer = StringIO()
+        writer = csv.DictWriter(csv_buffer, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
 
-        output.seek(0)
-        return send_file(output, mimetype="text/csv", as_attachment=True, download_name=f"{log_type}_log.csv")
+        # Encode as bytes and wrap in BytesIO for send_file
+        bytes_buffer = BytesIO(csv_buffer.getvalue().encode("utf-8"))
+        bytes_buffer.seek(0)
+
+        return send_file(
+            bytes_buffer,
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name=f"{log_type}_log.csv"
+        )
 
     except Exception as e:
         return jsonify({"error": f"Failed to generate CSV: {str(e)}"}), 500
