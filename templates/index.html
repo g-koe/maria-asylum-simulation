@@ -28,10 +28,17 @@
             border-top: 2px solid #ccc;
         }
         #student_display {
-            font-weight: bold;
-            margin-bottom: 20px;
-            font-size: 1.2em;
-            color: #007BFF;
+            background-color: #e7f1ff;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-left: 5px solid #007BFF;
+            font-size: 1.1em;
+            border-radius: 8px;
+        }
+        .step-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -41,7 +48,7 @@
         window.onload = function() {
             const savedName = localStorage.getItem("student_name");
             if (savedName) {
-                setStudentName(savedName, true);  // set silently
+                setStudentName(savedName, true);  // silent init
             }
         }
 
@@ -63,15 +70,12 @@
                 localStorage.setItem("student_name", name);
                 studentNameSet = true;
 
-                document.getElementById("student_display").innerHTML = `👋 <strong>Welcome, ${name}!</strong><br>You're stepping into the shoes of Maria's lawyer. Ready to help her seek justice?`;
+                document.getElementById("student_display").innerHTML =
+                    `👋 <strong>Welcome, ${name}!</strong><br>
+                    You're stepping into the shoes of Maria's lawyer. Ready to help her seek justice?`;
 
-                if (!silent) {
-                    document.getElementById("name_input").style.display = "none";
-                    document.getElementById("chat_interface").style.display = "block";
-                } else {
-                    document.getElementById("name_input").style.display = "none";
-                    document.getElementById("chat_interface").style.display = "block";
-                }
+                document.getElementById("name_input").style.display = "none";
+                document.getElementById("chat_interface").style.display = "block";
             }
         }
 
@@ -131,7 +135,7 @@
     </script>
 </head>
 <body>
-    <h1>Interview with Maria</h1>
+    <h1>Maria's Asylum Case Simulation</h1>
     <div id="student_display"></div>
     <img src="{{ url_for('static', filename='images/maria_desk.png') }}" alt="Maria the asylum-seeker at the desk">
 
@@ -142,6 +146,7 @@
     </div>
 
     <div id="chat_interface" style="display:none;">
+        <div class="step-label">Step 1: Interview with Maria</div>
         <div><em>{{ initial_message | safe }}</em></div>
         <hr>
         <div id="response"></div>
@@ -149,6 +154,7 @@
         <button onclick="sendMessage()">Send to Maria</button>
 
         <div class="section">
+            <div class="step-label">Step 2: Legal Consultation with Sharon</div>
             <h2>Lunch with Sharon</h2>
             <img src="{{ url_for('static', filename='images/sharon_restaurant.png') }}" alt="Sharon the lawyer at the restaurant">
             <div><em>{{ sharon_intro | safe }}</em></div>
@@ -159,6 +165,7 @@
         </div>
 
         <div class="section">
+            <div class="step-label">Step 3: Submit Your Legal Pleading</div>
             <h2>Pleading Before Judge Leclerc</h2>
             <img src="{{ url_for('static', filename='images/judge_court.png') }}" alt="Judge Jean-Marie Leclerc in court">
             <div><em>{{ judge_intro | safe }}</em></div>
