@@ -1,7 +1,7 @@
 import os
 import csv
 import datetime
-from io import StringIO
+from io import BytesIO
 
 from flask import Flask, render_template, request, jsonify, session, send_file
 from flask_session import Session
@@ -351,12 +351,13 @@ def view_log(log_type):
 
 @app.route("/download_log/<log_type>")
 def download_log(log_type):
-    valid_tables = {
+    table_map = {
         "maria": "maria_logs",
         "sharon": "sharon_logs",
         "judge": "judge_logs"
     }
-    table_name = valid_tables.get(log_type)
+
+    table_name = table_map.get(log_type)
     if not table_name:
         return jsonify({"error": "Invalid log type."}), 400
 
@@ -368,23 +369,22 @@ def download_log(log_type):
         headers = [desc[0] for desc in cur.description]
         conn.close()
 
-        # Create CSV in memory
-        csv_buffer = StringIO()
-        writer = csv.writer(csv_buffer)
+        if not rows:
+            return jsonify({"error": "No data found."}), 404
+
+        # Write to a BytesIO CSV
+        output = BytesIO()
+        writer = csv.writer(output)
         writer.writerow(headers)
         for row in rows:
             writer.writerow(row)
 
-        csv_buffer.seek(0)
+        output.seek(0)
         filename = f"{log_type}_log.csv"
-        return send_file(
-            csv_buffer,
-            mimetype='text/csv',
-            as_attachment=True,
-            download_name=filename
-        )
+        return send_file(output, as_attachment=True, download_name=filename, mimetype="text/csv")
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to generate CSV: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
