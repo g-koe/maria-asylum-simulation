@@ -1,172 +1,249 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Maria's Asylum Case</title>
-    <style>
-        img {
-            max-width: 300px;
-            border-radius: 10px;
-            float: right;
-            margin-left: 20px;
-            margin-bottom: 10px;
+  <meta charset="UTF-8">
+  <title>Maria's Asylum Case</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding-top: 130px;
+    }
+
+    img {
+      max-width: 300px;
+      border-radius: 10px;
+      float: right;
+      margin-left: 20px;
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      width: 100%;
+    }
+
+    button {
+      margin-top: 10px;
+    }
+
+    .section {
+      margin-top: 50px;
+      padding-top: 20px;
+      border-top: 2px solid #ccc;
+    }
+
+    #student_display {
+      font-weight: bold;
+      margin-bottom: 20px;
+      font-size: 1.2em;
+      color: #007BFF;
+    }
+
+    .sticky-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: white;
+      z-index: 999;
+      border-bottom: 1px solid #ddd;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      padding: 10px 0;
+    }
+
+    .progress-container {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      font-size: 0.9em;
+      font-weight: normal;
+      color: #999;
+    }
+
+    .progress-step {
+      text-align: center;
+      transition: transform 0.3s, opacity 0.3s;
+      opacity: 0.5;
+    }
+
+    .progress-step.active {
+      font-weight: bold;
+      color: #000;
+      opacity: 1;
+      transform: scale(1.1);
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    let studentNameSet = false;
+
+    window.onload = function () {
+      const savedName = localStorage.getItem("student_name");
+      if (savedName) {
+        setStudentName(savedName, true);
+      }
+
+      window.addEventListener("scroll", updateProgress);
+    };
+
+    function updateProgress() {
+      const step1Top = document.getElementById("response").offsetTop - 150;
+      const step2Top = document.getElementById("sharon_response").offsetTop - 150;
+      const step3Top = document.getElementById("judge_response").offsetTop - 300;
+
+      const scrollY = window.scrollY;
+
+      const steps = [
+        document.getElementById("step1"),
+        document.getElementById("step2"),
+        document.getElementById("step3")
+      ];
+
+      steps.forEach(step => step.classList.remove("active"));
+
+      if (scrollY >= step3Top) {
+        steps[2].classList.add("active");
+      } else if (scrollY >= step2Top) {
+        steps[1].classList.add("active");
+      } else {
+        steps[0].classList.add("active");
+      }
+    }
+
+    async function setStudentName(name = null, silent = false) {
+      if (!name) {
+        name = document.getElementById("student_name").value;
+      }
+
+      if (!name) return alert("Please enter your name.");
+
+      const res = await fetch("/set_name", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ student_name: name })
+      });
+
+      const data = await res.json();
+      if (data.status === "ok") {
+        localStorage.setItem("student_name", name);
+        studentNameSet = true;
+
+        document.getElementById("student_display").innerHTML = `👋 <strong>Welcome, ${name}!</strong><br>You're stepping into the shoes of Maria's lawyer. Ready to help her seek justice?`;
+
+        if (!silent) {
+          document.getElementById("name_input").style.display = "none";
+          document.getElementById("chat_interface").style.display = "block";
+        } else {
+          document.getElementById("name_input").style.display = "none";
+          document.getElementById("chat_interface").style.display = "block";
         }
-        body {
-            font-family: Arial, sans-serif;
-            padding: 40px;
-            background-color: #f9f9f9;
-        }
-        textarea {
-            width: 100%;
-        }
-        button {
-            margin-top: 10px;
-        }
-        .section {
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 2px solid #ccc;
-        }
-        #student_display {
-            font-weight: bold;
-            margin-bottom: 20px;
-            font-size: 1.2em;
-            color: #007BFF;
-        }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script>
-        let studentNameSet = false;
+      }
+    }
 
-        window.onload = function() {
-            const savedName = localStorage.getItem("student_name");
-            if (savedName) {
-                setStudentName(savedName, true);  // set silently
-            }
-        }
+    async function sendMessage() {
+      if (!studentNameSet) return alert("Please enter your name first.");
 
-        async function setStudentName(name = null, silent = false) {
-            if (!name) {
-                name = document.getElementById("student_name").value;
-            }
+      const userInput = document.getElementById("user_input").value;
+      const responseBox = document.getElementById("response");
 
-            if (!name) return alert("Please enter your name.");
+      const res = await fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_input: userInput })
+      });
 
-            const res = await fetch("/set_name", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ student_name: name })
-            });
+      const data = await res.json();
+      responseBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
+      responseBox.innerHTML += `<div><strong>Maria:</strong> ${data.response}</div><hr>`;
+      document.getElementById("user_input").value = "";
+    }
 
-            const data = await res.json();
-            if (data.status === "ok") {
-                localStorage.setItem("student_name", name);
-                studentNameSet = true;
+    async function sendSharonMessage() {
+      if (!studentNameSet) return alert("Please enter your name first.");
 
-                document.getElementById("student_display").innerHTML = `👋 <strong>Welcome, ${name}!</strong><br>You're stepping into the shoes of Maria's lawyer. Ready to help her seek justice?`;
+      const userInput = document.getElementById("sharon_input").value;
+      const sharonBox = document.getElementById("sharon_response");
 
-                if (!silent) {
-                    document.getElementById("name_input").style.display = "none";
-                    document.getElementById("chat_interface").style.display = "block";
-                } else {
-                    document.getElementById("name_input").style.display = "none";
-                    document.getElementById("chat_interface").style.display = "block";
-                }
-            }
-        }
+      const res = await fetch("/ask_sharon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_input: userInput })
+      });
 
-        async function sendMessage() {
-            if (!studentNameSet) return alert("Please enter your name first.");
+      const data = await res.json();
+      sharonBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
+      sharonBox.innerHTML += `<div><strong>Sharon:</strong><br>${marked.parse(data.response)}</div><hr>`;
+      document.getElementById("sharon_input").value = "";
+    }
 
-            const userInput = document.getElementById("user_input").value;
-            const responseBox = document.getElementById("response");
+    async function submitPleading() {
+      if (!studentNameSet) return alert("Please enter your name first.");
 
-            const res = await fetch("/ask", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_input: userInput })
-            });
+      const userInput = document.getElementById("pleading_input").value;
+      const judgeBox = document.getElementById("judge_response");
 
-            const data = await res.json();
-            responseBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
-            responseBox.innerHTML += `<div><strong>Maria:</strong> ${data.response}</div><hr>`;
-            document.getElementById("user_input").value = "";
-        }
+      const res = await fetch("/submit_pleading", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_input: userInput })
+      });
 
-        async function sendSharonMessage() {
-            if (!studentNameSet) return alert("Please enter your name first.");
-
-            const userInput = document.getElementById("sharon_input").value;
-            const sharonBox = document.getElementById("sharon_response");
-
-            const res = await fetch("/ask_sharon", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_input: userInput })
-            });
-
-            const data = await res.json();
-            sharonBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
-            sharonBox.innerHTML += `<div><strong>Sharon:</strong><br>${marked.parse(data.response)}</div><hr>`;
-            document.getElementById("sharon_input").value = "";
-        }
-
-        async function submitPleading() {
-            if (!studentNameSet) return alert("Please enter your name first.");
-
-            const userInput = document.getElementById("pleading_input").value;
-            const judgeBox = document.getElementById("judge_response");
-
-            const res = await fetch("/submit_pleading", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_input: userInput })
-            });
-
-            const data = await res.json();
-            judgeBox.innerHTML += `<div><strong>You:</strong><br>${userInput}</div>`;
-            judgeBox.innerHTML += `<div><strong>Judge Leclerc:</strong><br>${marked.parse(data.response)}</div><hr>`;
-            document.getElementById("pleading_input").value = "";
-        }
-    </script>
+      const data = await res.json();
+      judgeBox.innerHTML += `<div><strong>You:</strong><br>${userInput}</div>`;
+      judgeBox.innerHTML += `<div><strong>Judge Leclerc:</strong><br>${marked.parse(data.response)}</div><hr>`;
+      document.getElementById("pleading_input").value = "";
+    }
+  </script>
 </head>
 <body>
+  <div class="sticky-progress">
+    <div class="progress-container">
+      <div class="progress-step active" id="step1">👩‍💼<br>Interview with Maria</div>
+      <div class="progress-step" id="step2">🧑‍⚖️<br>Legal Advice with Sharon</div>
+      <div class="progress-step" id="step3">🏛️<br>Judge’s Court Decision</div>
+    </div>
+  </div>
+
+  <div class="section">
     <h1>Interview with Maria</h1>
     <div id="student_display"></div>
     <img src="{{ url_for('static', filename='images/maria_desk.png') }}" alt="Maria the asylum-seeker at the desk">
 
     <div id="name_input">
-        <p>Please enter your name to begin:</p>
-        <input type="text" id="student_name" placeholder="Your name">
-        <button onclick="setStudentName()">Start Interview</button>
+      <p>Please enter your name to begin:</p>
+      <input type="text" id="student_name" placeholder="Your name">
+      <button onclick="setStudentName()">Start Interview</button>
     </div>
 
     <div id="chat_interface" style="display:none;">
-        <div><em>{{ initial_message | safe }}</em></div>
+      <div><em>{{ initial_message | safe }}</em></div>
+      <hr>
+      <div id="response"></div>
+      <textarea id="user_input" rows="4" cols="50" placeholder="Type your question to Maria..."></textarea><br>
+      <button onclick="sendMessage()">Send to Maria</button>
+
+      <div class="section">
+        <h2>Lunch with Sharon</h2>
+        <img src="{{ url_for('static', filename='images/sharon_restaurant.png') }}" alt="Sharon the lawyer at the restaurant">
+        <div><em>{{ sharon_intro | safe }}</em></div>
         <hr>
-        <div id="response"></div>
-        <textarea id="user_input" rows="4" cols="50" placeholder="Type your question to Maria..."></textarea><br>
-        <button onclick="sendMessage()">Send to Maria</button>
+        <div id="sharon_response"></div>
+        <textarea id="sharon_input" rows="4" cols="50" placeholder="Ask Sharon a legal question..."></textarea><br>
+        <button onclick="sendSharonMessage()">Ask Sharon</button>
+      </div>
 
-        <div class="section">
-            <h2>Lunch with Sharon</h2>
-            <img src="{{ url_for('static', filename='images/sharon_restaurant.png') }}" alt="Sharon the lawyer at the restaurant">
-            <div><em>{{ sharon_intro | safe }}</em></div>
-            <hr>
-            <div id="sharon_response"></div>
-            <textarea id="sharon_input" rows="4" cols="50" placeholder="Ask Sharon a legal question..."></textarea><br>
-            <button onclick="sendSharonMessage()">Ask Sharon</button>
-        </div>
-
-        <div class="section">
-            <h2>Pleading Before Judge Leclerc</h2>
-            <img src="{{ url_for('static', filename='images/judge_court.png') }}" alt="Judge Jean-Marie Leclerc in court">
-            <div><em>{{ judge_intro | safe }}</em></div>
-            <hr>
-            <div id="judge_response"></div>
-            <textarea id="pleading_input" rows="6" cols="70" placeholder="Paste your legal pleading here..."></textarea><br>
-            <button onclick="submitPleading()">Submit to Judge</button>
-        </div>
+      <div class="section">
+        <h2>Pleading Before Judge Leclerc</h2>
+        <img src="{{ url_for('static', filename='images/judge_court.png') }}" alt="Judge Jean-Marie Leclerc in court">
+        <div><em>{{ judge_intro | safe }}</em></div>
+        <hr>
+        <div id="judge_response"></div>
+        <textarea id="pleading_input" rows="6" cols="70" placeholder="Paste your legal pleading here..."></textarea><br>
+        <button onclick="submitPleading()">Submit to Judge</button>
+      </div>
     </div>
+  </div>
 </body>
 </html>
