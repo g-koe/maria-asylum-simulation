@@ -32,8 +32,18 @@
     <script>
         let studentNameSet = false;
 
-        async function setStudentName() {
-            const name = document.getElementById("student_name").value;
+        window.onload = function() {
+            const savedName = localStorage.getItem("student_name");
+            if (savedName) {
+                setStudentName(savedName, true);  // set silently
+            }
+        }
+
+        async function setStudentName(name = null, silent = false) {
+            if (!name) {
+                name = document.getElementById("student_name").value;
+            }
+
             if (!name) return alert("Please enter your name.");
 
             const res = await fetch("/set_name", {
@@ -44,8 +54,15 @@
 
             const data = await res.json();
             if (data.status === "ok") {
-                document.getElementById("name_input").style.display = "none";
-                document.getElementById("chat_interface").style.display = "block";
+                if (!silent) {
+                    document.getElementById("name_input").style.display = "none";
+                    document.getElementById("chat_interface").style.display = "block";
+                } else {
+                    document.getElementById("name_input").style.display = "none";
+                    document.getElementById("chat_interface").style.display = "block";
+                }
+
+                localStorage.setItem("student_name", name);
                 studentNameSet = true;
             }
         }
