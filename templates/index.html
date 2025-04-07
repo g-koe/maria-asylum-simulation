@@ -30,6 +30,8 @@
         #student_display {
             font-weight: bold;
             margin-bottom: 20px;
+            font-size: 1.2em;
+            color: #007BFF;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -61,7 +63,7 @@
                 localStorage.setItem("student_name", name);
                 studentNameSet = true;
 
-                document.getElementById("student_display").innerText = `Student: ${name}`;
+                document.getElementById("student_display").innerHTML = `👋 <strong>Welcome, ${name}!</strong><br>You're stepping into the shoes of Maria's lawyer. Ready to help her seek justice?`;
 
                 if (!silent) {
                     document.getElementById("name_input").style.display = "none";
