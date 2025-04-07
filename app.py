@@ -5,6 +5,13 @@ from dotenv import load_dotenv
 import os
 import csv
 import datetime
+import psycopg2
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+def get_db_connection():
+    return psycopg2.connect(DATABASE_URL)
+
 
 # --- Load environment variables from .env ---
 load_dotenv()
@@ -215,32 +222,38 @@ Respond only with the number. Do not add any explanation.
 
 # --- Logging ---
 def log_interaction(student_name, user_input, maria_response):
-    file_path = "logs/conversations.csv"
-    file_exists = os.path.exists(file_path)
     trust_level = session.get("trust_level", 0)
-    with open(file_path, "a", newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(["timestamp", "student_name", "trust_level", "student_input", "maria_response"])
-        writer.writerow([datetime.datetime.now().isoformat(), student_name, trust_level, user_input, maria_response])
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO maria_logs (timestamp, student_name, trust_level, student_input, maria_response)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (datetime.datetime.now(), student_name, trust_level, user_input, maria_response))
+    conn.commit()
+    cur.close()
+    conn.close()
 
 def log_sharon_interaction(student_name, user_input, sharon_response):
-    file_path = "logs/sharon_conversations.csv"
-    file_exists = os.path.exists(file_path)
-    with open(file_path, "a", newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(["timestamp", "student_name", "student_input", "sharon_response"])
-        writer.writerow([datetime.datetime.now().isoformat(), student_name, user_input, sharon_response])
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO sharon_logs (timestamp, student_name, student_input, sharon_response)
+        VALUES (%s, %s, %s, %s)
+    """, (datetime.datetime.now(), student_name, user_input, sharon_response))
+    conn.commit()
+    cur.close()
+    conn.close()
 
 def log_judge_interaction(student_name, user_input, judge_response, score):
-    file_path = "logs/judge_feedback.csv"
-    file_exists = os.path.exists(file_path)
-    with open(file_path, "a", newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(["timestamp", "student_name", "student_input", "judge_feedback", "score_out_of_20"])
-        writer.writerow([datetime.datetime.now().isoformat(), student_name, user_input, judge_response, score])
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO judge_logs (timestamp, student_name, student_input, judge_feedback, score_out_of_20)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (datetime.datetime.now(), student_name, user_input, judge_response, score))
+    conn.commit()
+    cur.close()
+    conn.close()
 
 # --- Routes ---
 @app.route("/")
