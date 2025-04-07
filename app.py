@@ -351,37 +351,34 @@ def view_log(log_type):
 
 @app.route("/download_log/<log_type>")
 def download_log(log_type):
-    table_map = {
+    valid_tables = {
         "maria": "maria_logs",
         "sharon": "sharon_logs",
         "judge": "judge_logs"
     }
-
-    table_name = table_map.get(log_type)
+    table_name = valid_tables.get(log_type)
     if not table_name:
         return jsonify({"error": "Invalid log type."}), 400
 
     try:
         conn = get_db_connection()
-        cur = conn.cursor()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(f"SELECT * FROM {table_name}")
         rows = cur.fetchall()
-        headers = [desc[0] for desc in cur.description]
         conn.close()
 
         if not rows:
-            return jsonify({"error": "No data found."}), 404
+            return jsonify({"error": "No data available."}), 404
 
-        # Write to a BytesIO CSV
+        # Create CSV in memory
         output = BytesIO()
         writer = csv.writer(output)
-        writer.writerow(headers)
+        writer.writerow(rows[0].keys())  # headers
         for row in rows:
-            writer.writerow(row)
+            writer.writerow(row.values())
 
         output.seek(0)
-        filename = f"{log_type}_log.csv"
-        return send_file(output, as_attachment=True, download_name=filename, mimetype="text/csv")
+        return send_file(output, mimetype="text/csv", as_attachment=True, download_name=f"{log_type}_log.csv")
 
     except Exception as e:
         return jsonify({"error": f"Failed to generate CSV: {str(e)}"}), 500
