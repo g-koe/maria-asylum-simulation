@@ -6,7 +6,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f9f9f9;
+      background-color: #fdf6e3; /* Beige background */
       margin: 0;
       padding-top: 160px;
     }
@@ -15,16 +15,17 @@
       position: fixed;
       top: 0;
       width: 100%;
-      background: #fff;
+      background: #fdf6e3;
       z-index: 1000;
-      border-bottom: 1px solid #ddd;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      border-bottom: 2px solid #ccc;
       padding: 10px 0 15px;
       text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .welcome-message {
       font-size: 1.1em;
+      color: #000;
       margin-bottom: 10px;
     }
 
@@ -34,27 +35,44 @@
       align-items: center;
       gap: 40px;
       font-size: 0.9em;
-      color: #999;
+      color: #333;
     }
 
     .progress-step {
-      opacity: 0.5;
+      opacity: 0.4;
       transition: all 0.3s ease;
       text-align: center;
+      position: relative;
     }
 
     .progress-step.active {
       color: #007BFF;
       font-weight: bold;
       opacity: 1;
-      transform: scale(1.1);
+      transform: scale(1.05);
+    }
+
+    .progress-step::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: -50px;
+      width: 40px;
+      height: 4px;
+      background-color: #ccc;
+      transform: translateY(-50%);
+      z-index: -1;
+    }
+
+    .progress-step:first-child::before {
+      content: none;
     }
 
     .section {
       display: flex;
       align-items: flex-start;
       gap: 30px;
-      margin: 60px 40px;
+      margin: 80px 40px;
       border-top: 2px solid #ccc;
       padding-top: 30px;
     }
@@ -113,7 +131,7 @@
     function updateProgress() {
       const step1 = document.getElementById("step1").offsetTop - 200;
       const step2 = document.getElementById("step2").offsetTop - 200;
-      const step3 = document.getElementById("step3").offsetTop - 200;
+      const step3 = document.getElementById("step3").offsetTop - 600;
       const scrollY = window.scrollY;
 
       const steps = [
