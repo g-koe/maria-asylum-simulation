@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Maria's Asylum Case</title>
   <style>
     body {
@@ -76,21 +76,19 @@
     let studentNameSet = false;
 
     async function setStudentName() {
-      const name = document.getElementById("student_name").value;
+      const name = document.getElementById("student_name").value.trim();
       if (!name) return alert("Please enter your name.");
-
       const res = await fetch("/set_name", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ student_name: name })
       });
-
       const data = await res.json();
       if (data.status === "ok") {
+        studentNameSet = true;
+        document.getElementById("displayed_name").innerText = name;
         document.getElementById("name_input").style.display = "none";
         document.getElementById("chat_interface").style.display = "block";
-        document.getElementById("displayed_name").textContent = name;
-        studentNameSet = true;
       }
     }
 
@@ -134,16 +132,15 @@
         body: JSON.stringify({ user_input: userInput })
       });
       const data = await res.json();
-      judgeBox.innerHTML += `<div><strong>Your Pleading:</strong> ${userInput}</div>`;
-      judgeBox.innerHTML += `<div><strong>Judge:</strong><br>${marked.parse(data.response)}</div><hr>`;
+      judgeBox.innerHTML = `<div><strong>Judge's Decision:</strong><br>${marked.parse(data.response)}</div>`;
       document.getElementById("judge_input").value = "";
     }
 
     window.addEventListener("scroll", function () {
       const scrollY = window.scrollY;
-      const step1 = document.getElementById("step1").offsetTop - 160;
-      const step2 = document.getElementById("step2").offsetTop - 160;
-      const step3 = document.getElementById("step3").offsetTop - 160;
+      const step1 = document.getElementById("step1").offsetTop - 200;
+      const step2 = document.getElementById("step2").offsetTop - 200;
+      const step3 = document.getElementById("step3").offsetTop - 400;
 
       const icon1 = document.getElementById("step1-icon");
       const icon2 = document.getElementById("step2-icon");
@@ -168,9 +165,9 @@
     <h1>👋 Welcome, <span id="displayed_name">Student</span>!</h1>
     <p>You're stepping into the shoes of Maria's lawyer. Ready to help her seek justice?</p>
     <div class="progress-container">
-      <div class="progress-step" id="step1-icon">👩‍💼<br>Maria</div>
-      <div class="progress-step" id="step2-icon">🧑‍⚖️<br>Sharon</div>
-      <div class="progress-step" id="step3-icon">🏛️<br>Judge</div>
+      <div class="progress-step" id="step1-icon">👩‍💼<br>Interview with Maria</div>
+      <div class="progress-step" id="step2-icon">🧑‍⚖️<br>Legal Advice with Sharon</div>
+      <div class="progress-step" id="step3-icon">🏛️<br>Judge’s Court Decision</div>
     </div>
   </div>
 
@@ -183,8 +180,6 @@
   <div class="section" id="chat_interface" style="display:none;">
     <div class="divider" id="step1">
       <h2>Interview with Maria</h2>
-      <img src="{{ url_for('static', filename='images/maria_desk.png') }}" alt="Maria at the desk">
-      <div><em>{{ initial_message | safe }}</em></div>
       <div id="response"></div>
       <textarea id="user_input" rows="4" placeholder="Type your question to Maria..."></textarea><br>
       <button onclick="sendMessage()">Send to Maria</button>
@@ -192,8 +187,6 @@
 
     <div class="divider" id="step2">
       <h2>Lunch with Sharon</h2>
-      <img src="{{ url_for('static', filename='images/sharon_restaurant.png') }}" alt="Sharon at the restaurant">
-      <div><em>{{ sharon_intro | safe }}</em></div>
       <div id="sharon_response"></div>
       <textarea id="sharon_input" rows="4" placeholder="Ask Sharon a legal question..."></textarea><br>
       <button onclick="sendSharonMessage()">Ask Sharon</button>
@@ -201,10 +194,8 @@
 
     <div class="divider" id="step3">
       <h2>Pleading Before the Judge</h2>
-      <img src="{{ url_for('static', filename='images/judge_courtroom.png') }}" alt="Judge in court">
-      <div><em>{{ judge_intro | safe }}</em></div>
       <div id="judge_response"></div>
-      <textarea id="judge_input" rows="6" placeholder="Paste your final pleading here..."></textarea><br>
+      <textarea id="judge_input" rows="10" placeholder="Paste your final pleading here..."></textarea><br>
       <button onclick="sendJudgeMessage()">Submit to Judge</button>
     </div>
   </div>
